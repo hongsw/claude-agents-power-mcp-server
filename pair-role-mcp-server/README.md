@@ -45,6 +45,12 @@
 - Real-time role recommendations and team composition
 - One-click agent installation to your project
 
+### 🌐 **GitHub Integration**
+- Automatic agent downloading from [baryonlabs/claude-sub-agent-contents](https://github.com/baryonlabs/claude-sub-agent-contents)
+- Download tracking and usage analytics
+- Offline caching for downloaded agents
+- No need to create agent templates from scratch
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -299,6 +305,15 @@ mcp__pair-role__install-agents ["frontend-developer", "backend-developer"]
 
 ## 🎯 Usage Examples
 
+### 📊 Download Statistics
+```bash
+# Get download statistics for popular agents
+mcp__pair-role__get-download-stats
+
+# Refresh agents from GitHub repository
+mcp__pair-role__refresh-agents
+```
+
 ### 🚀 Startup MVP Development
 ```bash
 # Analyze project and get recommendations
@@ -392,6 +407,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 4. **Documentation** - Improve guides and examples
 
 ### 🚀 Roadmap
+- [x] GitHub integration for agent templates
+- [x] Download tracking and analytics
 - [ ] Visual project analyzer dashboard
 - [ ] Role dependency recommendations  
 - [ ] Industry-specific role bundles

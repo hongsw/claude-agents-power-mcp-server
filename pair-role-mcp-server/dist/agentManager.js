@@ -17,32 +17,41 @@ export class AgentManager {
         });
     }
     async loadAgents() {
-        // Load English agents
-        const enAgentsPath = this.agentsPath;
-        const enFiles = await fs.readdir(enAgentsPath);
-        for (const file of enFiles) {
-            if (file.endsWith('.md')) {
-                const agent = await this.loadAgent(path.join(enAgentsPath, file), 'en');
-                if (agent) {
-                    this.agentsCache.set(agent.name, agent);
-                }
-            }
-        }
-        // Load Korean agents
-        const krAgentsPath = path.join(this.agentsPath, 'kr');
         try {
-            const krFiles = await fs.readdir(krAgentsPath);
-            for (const file of krFiles) {
+            // Check if the agents directory exists
+            await fs.access(this.agentsPath);
+            // Load English agents
+            const enAgentsPath = this.agentsPath;
+            const enFiles = await fs.readdir(enAgentsPath);
+            for (const file of enFiles) {
                 if (file.endsWith('.md')) {
-                    const agent = await this.loadAgent(path.join(krAgentsPath, file), 'kr');
+                    const agent = await this.loadAgent(path.join(enAgentsPath, file), 'en');
                     if (agent) {
-                        this.agentsCache.set(`${agent.name}-kr`, agent);
+                        this.agentsCache.set(agent.name, agent);
                     }
                 }
             }
+            // Load Korean agents
+            const krAgentsPath = path.join(this.agentsPath, 'kr');
+            try {
+                const krFiles = await fs.readdir(krAgentsPath);
+                for (const file of krFiles) {
+                    if (file.endsWith('.md')) {
+                        const agent = await this.loadAgent(path.join(krAgentsPath, file), 'kr');
+                        if (agent) {
+                            this.agentsCache.set(`${agent.name}-kr`, agent);
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                // Korean agents directory doesn't exist
+            }
         }
-        catch (e) {
-            // Korean agents directory doesn't exist
+        catch (error) {
+            console.log('Local agents directory not found. Agents will be fetched from GitHub as needed.');
+            // Try to fetch some common agents from GitHub
+            await this.refreshAgentsFromGitHub();
         }
     }
     async loadAgent(filePath, language = 'en') {
