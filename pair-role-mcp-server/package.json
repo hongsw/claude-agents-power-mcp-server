@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc && chmod 755 dist/index.js",
     "start": "node dist/index.js --transport stdio",
+    "start:debug": "node dist/index.js --transport stdio --debug",
     "dev": "tsx src/index.ts"
   },
   "bin": {

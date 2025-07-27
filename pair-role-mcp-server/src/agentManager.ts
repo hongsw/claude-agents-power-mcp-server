@@ -15,8 +15,10 @@ export class AgentManager {
   private agentsPath: string;
   private agentsCache: Map<string, Agent> = new Map();
   private githubIntegration: GitHubIntegration;
+  private debug: boolean;
 
-  constructor(agentsPath: string, githubConfig?: GitHubConfig) {
+  constructor(agentsPath: string, githubConfig?: GitHubConfig, debug: boolean = false) {
+    this.debug = debug;
     this.agentsPath = agentsPath;
     
     // Initialize GitHub integration with default repository
@@ -64,7 +66,9 @@ export class AgentManager {
         // Korean agents directory doesn't exist
       }
     } catch (error) {
-      console.log('Local agents directory not found. Agents will be fetched from GitHub as needed.');
+      if (this.debug) {
+        console.error('[MCP Sub-Agents] Local agents directory not found. Agents will be fetched from GitHub as needed.');
+      }
       // Try to fetch some common agents from GitHub
       await this.refreshAgentsFromGitHub();
     }
@@ -174,7 +178,9 @@ ${agent.content}`;
       
       // If not in cache, try to fetch from GitHub
       if (!agent) {
-        console.log(`Agent ${agentName} not found locally, fetching from GitHub...`);
+        if (this.debug) {
+          console.error(`[MCP Sub-Agents] Agent ${agentName} not found locally, fetching from GitHub...`);
+        }
         agent = await this.githubIntegration.fetchAgentFromGitHub(agentName, language);
         
         if (agent) {
@@ -188,7 +194,9 @@ ${agent.content}`;
         const path = await this.installAgent(agent, targetPath);
         installedPaths.push(path);
       } else {
-        console.warn(`Failed to find or fetch agent: ${agentName}`);
+        if (this.debug) {
+          console.error(`[MCP Sub-Agents] Failed to find or fetch agent: ${agentName}`);
+        }
       }
     }
     
@@ -214,6 +222,8 @@ ${agent.content}`;
       this.agentsCache.set(key, agent);
     }
     
-    console.log(`Refreshed ${agents.length} agents from GitHub`);
+    if (this.debug) {
+      console.error(`[MCP Sub-Agents] Refreshed ${agents.length} agents from GitHub`);
+    }
   }
 }

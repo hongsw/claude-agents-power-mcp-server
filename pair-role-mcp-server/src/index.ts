@@ -19,12 +19,21 @@ const __dirname = dirname(__filename);
 // Parse CLI arguments using commander
 const program = new Command()
   .option('--transport <stdio>', 'transport type', 'stdio')
+  .option('--debug', 'enable debug logging')
   .allowUnknownOption() // let MCP Inspector / other wrappers pass through extra flags
   .parse(process.argv);
 
 const cliOptions = program.opts<{
   transport: string;
+  debug?: boolean;
 }>();
+
+// Debug logging function
+const debug = (...args: any[]) => {
+  if (cliOptions.debug) {
+    console.error('[MCP Sub-Agents DEBUG]', ...args);
+  }
+};
 
 // Validate transport option
 const allowedTransports = ['stdio'];
@@ -62,23 +71,28 @@ const agentsPath = isDevelopment
   ? path.join(__dirname, '../../sub-agents')
   : path.resolve(process.cwd(), 'sub-agents');
 
-console.error(`[MCP Sub-Agents] Current working directory: ${process.cwd()}`);
-console.error(`[MCP Sub-Agents] __dirname: ${__dirname}`);
-console.error(`[MCP Sub-Agents] Loading agents from: ${agentsPath}`);
+debug(`Current working directory: ${process.cwd()}`);
+debug(`__dirname: ${__dirname}`);
+debug(`Loading agents from: ${agentsPath}`);
 
 // Check if agents directory exists
 import { existsSync } from 'fs';
-if (existsSync(agentsPath)) {
-  console.error(`[MCP Sub-Agents] Agents directory exists: ${agentsPath}`);
+if (cliOptions.debug && existsSync(agentsPath)) {
+  debug(`Agents directory exists: ${agentsPath}`);
   const { readdirSync } = await import('fs');
   const files = readdirSync(agentsPath);
-  console.error(`[MCP Sub-Agents] Found ${files.length} files in agents directory`);
-} else {
-  console.error(`[MCP Sub-Agents] ERROR: Agents directory not found: ${agentsPath}`);
+  debug(`Found ${files.length} files in agents directory`);
+} else if (cliOptions.debug) {
+  debug(`ERROR: Agents directory not found: ${agentsPath}`);
 }
 
 const projectAnalyzer = new ProjectAnalyzer();
-const agentManager = new AgentManager(agentsPath);
+const agentManager = new AgentManager(agentsPath, {
+  owner: 'baryonlabs',
+  repo: 'claude-sub-agent-contents',
+  branch: 'main',
+  path: 'sub-agents'
+}, cliOptions.debug || false);
 
 // Function to setup tools for a server instance
 function setupTools(server: Server, projectAnalyzer: ProjectAnalyzer, agentManager: AgentManager) {
@@ -442,9 +456,11 @@ async function main() {
   // Load agents on startup
   try {
     await agentManager.loadAgents();
-    console.error(`[MCP Sub-Agents] Agents loaded successfully`);
+    debug(`Agents loaded successfully`);
   } catch (error) {
-    console.error(`[MCP Sub-Agents] ERROR loading agents:`, error);
+    if (cliOptions.debug) {
+      console.error(`[MCP Sub-Agents] ERROR loading agents:`, error);
+    }
   }
 
   // Stdio transport - this is already stateless by nature
@@ -452,7 +468,9 @@ async function main() {
   setupTools(server, projectAnalyzer, agentManager);
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Pair-Role MCP Server running on stdio');
+  if (cliOptions.debug) {
+    console.error('[MCP Sub-Agents] Server running on stdio');
+  }
 }
 
 main().catch((error) => {

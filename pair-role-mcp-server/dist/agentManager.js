@@ -6,7 +6,9 @@ export class AgentManager {
     agentsPath;
     agentsCache = new Map();
     githubIntegration;
-    constructor(agentsPath, githubConfig) {
+    debug;
+    constructor(agentsPath, githubConfig, debug = false) {
+        this.debug = debug;
         this.agentsPath = agentsPath;
         // Initialize GitHub integration with default repository
         this.githubIntegration = new GitHubIntegration(githubConfig || {
@@ -49,7 +51,9 @@ export class AgentManager {
             }
         }
         catch (error) {
-            console.log('Local agents directory not found. Agents will be fetched from GitHub as needed.');
+            if (this.debug) {
+                console.error('[MCP Sub-Agents] Local agents directory not found. Agents will be fetched from GitHub as needed.');
+            }
             // Try to fetch some common agents from GitHub
             await this.refreshAgentsFromGitHub();
         }
@@ -139,7 +143,9 @@ ${agent.content}`;
             let agent = this.getAgent(agentName, language);
             // If not in cache, try to fetch from GitHub
             if (!agent) {
-                console.log(`Agent ${agentName} not found locally, fetching from GitHub...`);
+                if (this.debug) {
+                    console.error(`[MCP Sub-Agents] Agent ${agentName} not found locally, fetching from GitHub...`);
+                }
                 agent = await this.githubIntegration.fetchAgentFromGitHub(agentName, language);
                 if (agent) {
                     // Add to cache
@@ -152,7 +158,9 @@ ${agent.content}`;
                 installedPaths.push(path);
             }
             else {
-                console.warn(`Failed to find or fetch agent: ${agentName}`);
+                if (this.debug) {
+                    console.error(`[MCP Sub-Agents] Failed to find or fetch agent: ${agentName}`);
+                }
             }
         }
         return installedPaths;
@@ -172,7 +180,9 @@ ${agent.content}`;
             const key = agent.language === 'en' ? agent.name : `${agent.name}-${agent.language}`;
             this.agentsCache.set(key, agent);
         }
-        console.log(`Refreshed ${agents.length} agents from GitHub`);
+        if (this.debug) {
+            console.error(`[MCP Sub-Agents] Refreshed ${agents.length} agents from GitHub`);
+        }
     }
 }
 //# sourceMappingURL=agentManager.js.map

@@ -10,7 +10,8 @@ export declare class AgentManager {
     private agentsPath;
     private agentsCache;
     private githubIntegration;
-    constructor(agentsPath: string, githubConfig?: GitHubConfig);
+    private debug;
+    constructor(agentsPath: string, githubConfig?: GitHubConfig, debug?: boolean);
     loadAgents(): Promise<void>;
     private loadAgent;
     getAgent(name: string, language?: string): Agent | undefined;
