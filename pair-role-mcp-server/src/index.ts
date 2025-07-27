@@ -205,6 +205,28 @@ function setupTools(server: Server, projectAnalyzer: ProjectAnalyzer, agentManag
           required: ['keywords'],
         },
       },
+      {
+        name: 'get-download-stats',
+        description: 'Get download statistics for agents',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            limit: {
+              type: 'number',
+              description: 'Number of top agents to show',
+              default: 10
+            }
+          }
+        }
+      },
+      {
+        name: 'refresh-agents',
+        description: 'Refresh agents from GitHub repository',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
     ],
   };
 });

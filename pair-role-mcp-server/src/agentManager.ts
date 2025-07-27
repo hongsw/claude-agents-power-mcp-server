@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { GitHubIntegration, GitHubConfig } from './githubIntegration.js';
 
 export interface Agent {
   name: string;
@@ -13,9 +14,20 @@ export interface Agent {
 export class AgentManager {
   private agentsPath: string;
   private agentsCache: Map<string, Agent> = new Map();
+  private githubIntegration: GitHubIntegration;
 
-  constructor(agentsPath: string) {
+  constructor(agentsPath: string, githubConfig?: GitHubConfig) {
     this.agentsPath = agentsPath;
+    
+    // Initialize GitHub integration with default repository
+    this.githubIntegration = new GitHubIntegration(
+      githubConfig || {
+        owner: 'baryonlabs',
+        repo: 'claude-sub-agent-contents',
+        branch: 'main',
+        path: 'sub-agents'
+      }
+    );
   }
 
   async loadAgents(): Promise<void> {
@@ -148,13 +160,51 @@ ${agent.content}`;
     const installedPaths: string[] = [];
     
     for (const agentName of agentNames) {
-      const agent = this.getAgent(agentName, language);
+      // First try to get from cache
+      let agent = this.getAgent(agentName, language);
+      
+      // If not in cache, try to fetch from GitHub
+      if (!agent) {
+        console.log(`Agent ${agentName} not found locally, fetching from GitHub...`);
+        agent = await this.githubIntegration.fetchAgentFromGitHub(agentName, language);
+        
+        if (agent) {
+          // Add to cache
+          const key = language === 'en' ? agent.name : `${agent.name}-${language}`;
+          this.agentsCache.set(key, agent);
+        }
+      }
+      
       if (agent) {
         const path = await this.installAgent(agent, targetPath);
         installedPaths.push(path);
+      } else {
+        console.warn(`Failed to find or fetch agent: ${agentName}`);
       }
     }
     
     return installedPaths;
+  }
+
+  // Get download statistics
+  getDownloadStats(): Map<string, number> {
+    return this.githubIntegration.getDownloadStats();
+  }
+
+  // Get most downloaded agents
+  getMostDownloadedAgents(limit: number = 10): Array<{name: string, downloads: number}> {
+    return this.githubIntegration.getMostDownloaded(limit);
+  }
+
+  // Fetch and cache agents from GitHub
+  async refreshAgentsFromGitHub(): Promise<void> {
+    const agents = await this.githubIntegration.fetchAllAgentsFromGitHub();
+    
+    for (const agent of agents) {
+      const key = agent.language === 'en' ? agent.name : `${agent.name}-${agent.language}`;
+      this.agentsCache.set(key, agent);
+    }
+    
+    console.log(`Refreshed ${agents.length} agents from GitHub`);
   }
 }

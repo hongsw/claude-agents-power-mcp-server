@@ -1,11 +1,20 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import { GitHubIntegration } from './githubIntegration.js';
 export class AgentManager {
     agentsPath;
     agentsCache = new Map();
-    constructor(agentsPath) {
+    githubIntegration;
+    constructor(agentsPath, githubConfig) {
         this.agentsPath = agentsPath;
+        // Initialize GitHub integration with default repository
+        this.githubIntegration = new GitHubIntegration(githubConfig || {
+            owner: 'baryonlabs',
+            repo: 'claude-sub-agent-contents',
+            branch: 'main',
+            path: 'sub-agents'
+        });
     }
     async loadAgents() {
         // Load English agents
@@ -117,13 +126,44 @@ ${agent.content}`;
     async installMultipleAgents(agentNames, targetPath, language = 'en') {
         const installedPaths = [];
         for (const agentName of agentNames) {
-            const agent = this.getAgent(agentName, language);
+            // First try to get from cache
+            let agent = this.getAgent(agentName, language);
+            // If not in cache, try to fetch from GitHub
+            if (!agent) {
+                console.log(`Agent ${agentName} not found locally, fetching from GitHub...`);
+                agent = await this.githubIntegration.fetchAgentFromGitHub(agentName, language);
+                if (agent) {
+                    // Add to cache
+                    const key = language === 'en' ? agent.name : `${agent.name}-${language}`;
+                    this.agentsCache.set(key, agent);
+                }
+            }
             if (agent) {
                 const path = await this.installAgent(agent, targetPath);
                 installedPaths.push(path);
             }
+            else {
+                console.warn(`Failed to find or fetch agent: ${agentName}`);
+            }
         }
         return installedPaths;
+    }
+    // Get download statistics
+    getDownloadStats() {
+        return this.githubIntegration.getDownloadStats();
+    }
+    // Get most downloaded agents
+    getMostDownloadedAgents(limit = 10) {
+        return this.githubIntegration.getMostDownloaded(limit);
+    }
+    // Fetch and cache agents from GitHub
+    async refreshAgentsFromGitHub() {
+        const agents = await this.githubIntegration.fetchAllAgentsFromGitHub();
+        for (const agent of agents) {
+            const key = agent.language === 'en' ? agent.name : `${agent.name}-${agent.language}`;
+            this.agentsCache.set(key, agent);
+        }
+        console.log(`Refreshed ${agents.length} agents from GitHub`);
     }
 }
 //# sourceMappingURL=agentManager.js.map

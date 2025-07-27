@@ -1,3 +1,4 @@
+import { GitHubConfig } from './githubIntegration.js';
 export interface Agent {
     name: string;
     description: string;
@@ -8,7 +9,8 @@ export interface Agent {
 export declare class AgentManager {
     private agentsPath;
     private agentsCache;
-    constructor(agentsPath: string);
+    private githubIntegration;
+    constructor(agentsPath: string, githubConfig?: GitHubConfig);
     loadAgents(): Promise<void>;
     private loadAgent;
     getAgent(name: string, language?: string): Agent | undefined;
@@ -16,5 +18,11 @@ export declare class AgentManager {
     searchAgents(query: string): Agent[];
     installAgent(agent: Agent, targetPath: string): Promise<string>;
     installMultipleAgents(agentNames: string[], targetPath: string, language?: string): Promise<string[]>;
+    getDownloadStats(): Map<string, number>;
+    getMostDownloadedAgents(limit?: number): Array<{
+        name: string;
+        downloads: number;
+    }>;
+    refreshAgentsFromGitHub(): Promise<void>;
 }
 //# sourceMappingURL=agentManager.d.ts.map
