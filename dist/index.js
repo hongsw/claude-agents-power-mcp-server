@@ -368,9 +368,26 @@ trackEvent(AnalyticsEvents.SERVER_STARTED, {
 // Initialize managers
 // Support both development and production paths
 const isDevelopment = process.env.NODE_ENV === 'development';
-const agentsPath = isDevelopment
-    ? path.join(__dirname, '../../claude/agents')
-    : path.resolve(process.cwd(), 'claude/agents');
+// Try multiple possible agent paths
+let agentsPath;
+const possiblePaths = [
+    // Development path
+    path.join(__dirname, '../../claude/agents'),
+    // Production NPM global install
+    path.join(__dirname, '../claude/agents'),
+    // Alternative production path
+    path.resolve(process.cwd(), 'claude/agents'),
+    // NPM package structure
+    path.join(__dirname, '..', '..', 'claude', 'agents'),
+];
+// Find the first existing path
+agentsPath = possiblePaths.find(p => {
+    const exists = existsSync(p);
+    if (cliOptions.debug) {
+        console.error(`[MCP Sub-Agents DEBUG] Checking path: ${p} - ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+    }
+    return exists;
+}) || possiblePaths[0];
 debug(`Current working directory: ${process.cwd()}`);
 debug(`__dirname: ${__dirname}`);
 debug(`Loading agents from: ${agentsPath}`);
