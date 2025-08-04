@@ -800,6 +800,54 @@ Key practices:
                     },
                 },
                 {
+                    name: 'agent-download',
+                    description: 'AI-powered agent downloader - analyze project and download recommended agents',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            targetDir: {
+                                type: 'string',
+                                description: 'Target directory for agent files',
+                                default: './.claude/agents',
+                            },
+                            claudeMdPath: {
+                                type: 'string',
+                                description: 'Path to CLAUDE.md file',
+                                default: './CLAUDE.md',
+                            },
+                            format: {
+                                type: 'string',
+                                enum: ['md', 'yaml', 'json'],
+                                description: 'Agent file format',
+                                default: 'md',
+                            },
+                            language: {
+                                type: 'string',
+                                enum: ['en', 'ko', 'ja', 'zh'],
+                                description: 'Preferred language for agents',
+                                default: 'en',
+                            },
+                            limit: {
+                                type: 'number',
+                                description: 'Maximum number of agents to download',
+                                default: 10,
+                                minimum: 1,
+                                maximum: 20,
+                            },
+                            dryRun: {
+                                type: 'boolean',
+                                description: 'Preview recommendations without downloading',
+                                default: false,
+                            },
+                            overwrite: {
+                                type: 'boolean',
+                                description: 'Overwrite existing agent files',
+                                default: false,
+                            },
+                        },
+                    },
+                },
+                {
                     name: 'agents',
                     description: 'Search, list, get details, recommend agents, or request new ones',
                     inputSchema: {
@@ -983,6 +1031,91 @@ Key practices:
                                     success: false,
                                     error: `AI analysis failed: ${error instanceof Error ? error.message : String(error)}`,
                                     suggestion: 'Please check the CLAUDE.md file path and project structure',
+                                }, null, 2),
+                            },
+                        ],
+                    };
+                }
+            }
+            case 'agent-download': {
+                const { targetDir = './.claude/agents', claudeMdPath = './CLAUDE.md', format = 'md', language = 'en', limit = 10, dryRun = false, overwrite = false } = args;
+                try {
+                    const downloader = new AgentDownloader();
+                    const options = {
+                        targetDir,
+                        claudeMdPath,
+                        format,
+                        language,
+                        limit,
+                        dryRun,
+                        overwrite
+                    };
+                    const result = await downloader.downloadAgents(options);
+                    // Track agent download event
+                    trackEvent(AnalyticsEvents.PROJECT_ANALYZED, {
+                        project_types: result.analysis.projectType,
+                        technologies: result.analysis.technologies,
+                        recommended_count: result.recommendations.length,
+                        confidence: result.analysis.complexity / 10,
+                        ai_powered: true,
+                        dry_run: dryRun,
+                        downloaded_count: result.downloaded?.length || 0,
+                    });
+                    return {
+                        content: [
+                            {
+                                type: 'text',
+                                text: JSON.stringify({
+                                    success: true,
+                                    dryRun,
+                                    analysis: {
+                                        projectType: result.analysis.projectType,
+                                        technologies: result.analysis.technologies,
+                                        frameworks: result.analysis.frameworks,
+                                        complexity: result.analysis.complexity,
+                                        phase: result.analysis.phase,
+                                        teamSize: result.analysis.teamSize,
+                                        description: result.analysis.description,
+                                        qualityIndicators: result.analysis.qualityIndicators,
+                                        architecturalPatterns: result.analysis.architecturalPatterns,
+                                        developmentPractices: result.analysis.developmentPractices,
+                                    },
+                                    recommendations: result.recommendations.map(rec => ({
+                                        name: rec.name,
+                                        description: rec.description,
+                                        relevanceScore: rec.relevanceScore,
+                                        reasoning: rec.reasoning,
+                                        category: rec.category,
+                                        priority: rec.priority,
+                                        tools: rec.tools,
+                                        specificTasks: rec.specificTasks,
+                                        integrationPoints: rec.integrationPoints,
+                                    })),
+                                    downloaded: result.downloaded || [],
+                                    message: dryRun
+                                        ? `AI analysis preview completed. Found ${result.recommendations.length} recommended agents for your ${result.analysis.projectType} project.`
+                                        : `Successfully downloaded ${result.downloaded?.length || 0} AI-recommended agents to ${targetDir}.`,
+                                    aiFeatures: {
+                                        intelligentAnalysis: 'Comprehensive project understanding using AI reasoning',
+                                        contextAwareRecommendations: 'Agent suggestions based on project context and requirements',
+                                        dynamicPrioritization: 'Smart priority assignment based on project needs',
+                                        taskSpecificMatching: 'Agents matched to specific tasks and integration points',
+                                        automaticDownload: 'Seamless agent file creation with enhanced documentation'
+                                    }
+                                }, null, 2),
+                            },
+                        ],
+                    };
+                }
+                catch (error) {
+                    return {
+                        content: [
+                            {
+                                type: 'text',
+                                text: JSON.stringify({
+                                    success: false,
+                                    error: `Agent download failed: ${error instanceof Error ? error.message : String(error)}`,
+                                    suggestion: 'Please check the CLAUDE.md file path and ensure write permissions for the target directory',
                                 }, null, 2),
                             },
                         ],
