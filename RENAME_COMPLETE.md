@@ -3,9 +3,9 @@
 ## 변경 사항
 
 ### ✅ 완료된 작업:
-1. **디렉토리 이름 변경**: `mcp-sub-agents-server` → `pair-role-mcp-server`
+1. **디렉토리 이름 변경**: `mcp-sub-agents-server` → `claude-agents-power-mcp-server`
 2. **package.json 업데이트**: 프로젝트 이름과 설명 변경
-3. **소스 코드 업데이트**: Server 이름을 `pair-role-mcp-server`로 변경
+3. **소스 코드 업데이트**: Server 이름을 `claude-agents-power-mcp-server`로 변경
 4. **Claude Desktop 설정 업데이트**: 
    - MCP 서버 이름: `sub-agents` → `pair-role`
    - 경로 업데이트: 새로운 디렉토리 경로 반영
@@ -14,8 +14,8 @@
 
 ### 📁 변경된 구조:
 ```
-/Users/hongmartin/Claude/sub-agent-context/
-├── pair-role-mcp-server/       (이전: mcp-sub-agents-server)
+/Users/hongmartin/Claude/claude-agents-power/
+├── claude-agents-power-mcp-server/       (이전: mcp-sub-agents-server)
 │   ├── src/
 │   ├── dist/
 │   ├── package.json
@@ -33,8 +33,8 @@
   "mcpServers": {
     "pair-role": {
       "command": "/Users/hongmartin/.asdf/installs/nodejs/24.4.0/bin/node",
-      "args": ["/Users/hongmartin/Claude/sub-agent-context/pair-role-mcp-server/dist/index.js"],
-      "cwd": "/Users/hongmartin/Claude/sub-agent-context",
+      "args": ["/Users/hongmartin/Claude/claude-agents-power/claude-agents-power-mcp-server/dist/index.js"],
+      "cwd": "/Users/hongmartin/Claude/claude-agents-power",
       "env": {}
     }
   }

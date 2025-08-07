@@ -24,7 +24,7 @@ MCP sub-agents 서버가 연결되었는지 확인해줘
 ### 2. 현재 프로젝트 분석
 ```
 이 프로젝트를 분석해줘:
-analyze-project { "projectPath": "/Users/hongmartin/Claude/sub-agent-context" }
+analyze-project { "projectPath": "/Users/hongmartin/Claude/claude-agents-power" }
 ```
 
 ### 3. 에이전트 목록 확인
@@ -51,7 +51,7 @@ install-agents {
 
 ## 경로 정보
 
-- MCP 서버 위치: `/Users/hongmartin/Claude/sub-agent-context/mcp-sub-agents-server/`
-- 에이전트 파일들: `/Users/hongmartin/Claude/sub-agent-context/sub-agents/`
-- 한국어 에이전트: `/Users/hongmartin/Claude/sub-agent-context/sub-agents/kr/`
+- MCP 서버 위치: `/Users/hongmartin/Claude/claude-agents-power/mcp-sub-agents-server/`
+- 에이전트 파일들: `/Users/hongmartin/Claude/claude-agents-power/sub-agents/`
+- 한국어 에이전트: `/Users/hongmartin/Claude/claude-agents-power/sub-agents/kr/`
 - Claude 설정: `~/Library/Application Support/Claude/claude_desktop_config.json`

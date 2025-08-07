@@ -45,6 +45,6 @@ install-agents {
 ```
 
 ## 참고:
-- 에이전트 파일 위치: `/Users/hongmartin/Claude/sub-agent-context/sub-agents/`
-- 한국어 에이전트: `/Users/hongmartin/Claude/sub-agent-context/sub-agents/kr/`
+- 에이전트 파일 위치: `/Users/hongmartin/Claude/claude-agents-power/sub-agents/`
+- 한국어 에이전트: `/Users/hongmartin/Claude/claude-agents-power/sub-agents/kr/`
 - MCP 서버는 정상 작동 중이나 파일 로드 부분만 수정 필요
