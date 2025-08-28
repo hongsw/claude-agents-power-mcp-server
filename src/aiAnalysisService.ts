@@ -31,6 +31,7 @@ export interface AIAgentRecommendation {
   tools: string[];
   category: string;
   priority: 'essential' | 'recommended' | 'optional';
+  color?: string; // HEX color code for agent visualization
   specificTasks?: string[];
   integrationPoints?: string[];
 }
@@ -271,6 +272,7 @@ export class AIAnalysisService {
           tools: rule.tools,
           category: rule.category,
           priority: relevance.priority,
+          color: this.getAgentColor(rule.agentName, rule.category),
           specificTasks: relevance.specificTasks,
           integrationPoints: relevance.integrationPoints
         });
@@ -850,5 +852,83 @@ export class AIAnalysisService {
     if (context.fileStructure.some((f: string) => f.includes('docker'))) practices.push('Containerization');
 
     return practices;
+  }
+
+  /**
+   * Get color code for agent based on name and category
+   */
+  private getAgentColor(agentName: string, category: string): string {
+    // Color palette based on agent types and categories
+    const colorMap: Record<string, string> = {
+      // Core Development (Blue shades)
+      'frontend-developer': '#3B82F6',
+      'backend-engineer': '#1E40AF',
+      'full-stack-developer': '#2563EB',
+      'mobile-developer': '#60A5FA',
+      
+      // Architecture & Design (Purple shades)
+      'system-architect': '#8B5CF6',
+      'solution-architect': '#7C3AED',
+      'technical-architect': '#9333EA',
+      'api-designer': '#A78BFA',
+      
+      // Data & AI (Green shades)
+      'data-scientist': '#10B981',
+      'ml-engineer': '#059669',
+      'data-engineer': '#34D399',
+      'ai-specialist': '#6EE7B7',
+      
+      // Security (Red shades)
+      'security-engineer': '#EF4444',
+      'security-architect': '#DC2626',
+      'compliance-auditor': '#F87171',
+      'vulnerability-scanner': '#FCA5A5',
+      
+      // DevOps & Infrastructure (Orange shades)
+      'devops-engineer': '#F97316',
+      'sre-engineer': '#EA580C',
+      'cloud-architect': '#FB923C',
+      'cicd-engineer': '#FDBA74',
+      
+      // Testing & QA (Yellow shades)
+      'qa-engineer': '#F59E0B',
+      'test-automation': '#D97706',
+      'performance-tester': '#FCD34D',
+      'security-tester': '#FDE68A',
+      
+      // Product & Business (Pink shades)
+      'product-manager': '#EC4899',
+      'business-analyst': '#DB2777',
+      'scrum-master': '#F472B6',
+      'project-manager': '#FBCFE8',
+      
+      // Documentation & Support (Teal shades)
+      'technical-writer': '#14B8A6',
+      'documentation-specialist': '#0D9488',
+      'api-documenter': '#5EEAD4',
+      'support-engineer': '#99F6E4',
+    };
+
+    // Return specific color if mapped, otherwise generate based on category
+    if (colorMap[agentName]) {
+      return colorMap[agentName];
+    }
+
+    // Default colors by category
+    const categoryColors: Record<string, string> = {
+      'development': '#3B82F6',
+      'architecture': '#8B5CF6',
+      'data': '#10B981',
+      'security': '#EF4444',
+      'infrastructure': '#F97316',
+      'testing': '#F59E0B',
+      'management': '#EC4899',
+      'documentation': '#14B8A6',
+      'design': '#A78BFA',
+      'operations': '#F97316',
+    };
+
+    // Return category color or default
+    return categoryColors[category.toLowerCase()] || '#6B7280';
   }
 }

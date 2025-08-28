@@ -14,6 +14,7 @@ import os from 'os';
 import dotenv from 'dotenv';
 import { AgentDownloader } from './agentDownloader.js';
 import { AIAnalysisService } from './aiAnalysisService.js';
+import { executeSplashCommand } from './splashCommand.js';
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,13 +30,15 @@ try {
 catch (error) {
     console.error('[MCP Sub-Agents] Could not read package.json version:', error);
 }
-// Check for slash commands flags first (manual parsing to avoid commander issues)
+// Check for splash and other special commands first (manual parsing to avoid commander issues)
+const hasSplash = process.argv.includes('splash') || process.argv.includes('--splash');
 const hasInstallSlashCommands = process.argv.includes('--install-slash-commands');
 const hasUninstallSlashCommands = process.argv.includes('--uninstall-slash-commands');
 const hasAgentDownload = process.argv.includes('--agent-download');
 // Parse CLI arguments using commander
 const program = new Command()
     .name('claude-agents-power')
+    .version(version)
     .option('--transport <stdio>', 'transport type', 'stdio')
     .option('--debug', 'enable debug logging')
     .option('--install', 'install MCP configuration to Claude Desktop')
@@ -49,8 +52,50 @@ const program = new Command()
     .option('--limit <n>', 'maximum number of agents to download (default: 10)')
     .option('--dry-run', 'preview recommendations without downloading')
     .option('--overwrite', 'overwrite existing agent files')
-    .allowUnknownOption() // let MCP Inspector / other wrappers pass through extra flags
-    .parse(process.argv);
+    .allowUnknownOption(); // let MCP Inspector / other wrappers pass through extra flags
+// Add splash command 
+program
+    .command('splash')
+    .description('Quick setup: analyze project and recommend agents')
+    .action(async () => {
+    try {
+        await initializeAnalytics();
+        trackEvent(AnalyticsEvents.TOOL_CALLED, { tool_name: 'splash', version });
+        const result = await executeSplashCommand();
+        if (!result.success) {
+            console.error('❌ Splash command failed:', result.error || result.message);
+            process.exit(1);
+        }
+        await shutdownAnalytics();
+        process.exit(0);
+    }
+    catch (error) {
+        console.error('❌ Splash command error:', error);
+        process.exit(1);
+    }
+});
+// Handle splash command early before parsing
+if (hasSplash) {
+    // Skip to splash command execution
+    (async () => {
+        try {
+            await initializeAnalytics();
+            trackEvent(AnalyticsEvents.TOOL_CALLED, { tool_name: 'splash', version });
+            const result = await executeSplashCommand();
+            if (!result.success) {
+                console.error('❌ Splash command failed:', result.error || result.message);
+                process.exit(1);
+            }
+            await shutdownAnalytics();
+            process.exit(0);
+        }
+        catch (error) {
+            console.error('❌ Splash command error:', error);
+            process.exit(1);
+        }
+    })();
+}
+program.parse(process.argv);
 const cliOptions = program.opts();
 // Override with manual parsing results
 if (hasInstallSlashCommands) {
@@ -434,6 +479,18 @@ function setupTools(server, projectAnalyzer, agentManager, aiAnalysisService) {
                     description: '에이전트 파일 구조와 다국어 지원 설명',
                     mimeType: 'text/markdown',
                 },
+                {
+                    uri: 'mcp://claude-agents-power/claude-flow-agents',
+                    name: 'Claude-Flow Agent System',
+                    description: 'Advanced 64-agent system overview with swarm patterns and coordination strategies',
+                    mimeType: 'text/markdown',
+                },
+                {
+                    uri: 'mcp://claude-agents-power/agent-swarm-patterns',
+                    name: 'Agent Swarm Patterns',
+                    description: 'Recommended agent swarm deployment patterns for different use cases',
+                    mimeType: 'text/markdown',
+                },
             ],
         };
     });
@@ -762,6 +819,376 @@ Key practices:
 3. 언어별 번역 제공
 4. 적절한 도구 선택
 5. 구체적이고 실용적인 내용 작성
+`,
+                        },
+                    ],
+                };
+            case 'mcp://claude-agents-power/claude-flow-agents':
+                return {
+                    contents: [
+                        {
+                            uri,
+                            mimeType: 'text/markdown',
+                            text: `# Claude-Flow Agent System Overview
+
+## 🎯 Introduction
+Claude Agents Power integrates insights from Claude-Flow v2 Alpha's sophisticated 64-agent system designed for enterprise-grade AI orchestration. These specialized agents work together to create intelligent swarms capable of handling complex development tasks through coordinated collaboration.
+
+## 📊 Agent Categories and Specializations
+
+### 1. Core Development Agents
+Essential agents for basic development tasks:
+- **coder**: Implementation specialist for clean, efficient code
+- **reviewer**: Code quality assurance and review specialist  
+- **tester**: Test creation and validation expert
+- **planner**: Strategic planning and task orchestration
+- **researcher**: Information gathering and analysis specialist
+
+### 2. Swarm Coordination Patterns
+Advanced coordination patterns for distributed agent networks:
+- **hierarchical-coordinator**: Queen-led coordination with specialized workers (Tree structure)
+- **mesh-coordinator**: Peer-to-peer networks with fault tolerance (Mesh network)
+- **adaptive-coordinator**: Dynamic topology switching based on workload (Adaptive hybrid)
+
+### 3. Performance & Optimization Agents
+- **load-balancer**: Work-stealing algorithms for task distribution
+- **performance-monitor**: Real-time metrics collection and bottleneck analysis
+- **topology-optimizer**: Dynamic swarm topology reconfiguration
+- **resource-allocator**: Adaptive resource allocation with ML prediction
+- **benchmark-suite**: Automated performance testing and regression detection
+
+### 4. GitHub & Repository Management
+Complete GitHub workflow automation:
+- **pr-manager**: Pull request lifecycle management
+- **code-review-swarm**: Multi-agent intelligent code reviews
+- **issue-tracker**: Issue management and project coordination
+- **release-manager**: Release coordination and deployment
+- **workflow-automation**: CI/CD pipeline creation and optimization
+
+### 5. Testing & Validation
+- **tdd-london-swarm**: Mock-driven TDD with London School methodology
+- **production-validator**: Real implementation validation for deployment
+- **integration-tester**: End-to-end integration testing
+- **performance-tester**: Load and stress testing
+
+### 6. Security & Compliance
+- **security-manager**: Cryptographic security and attack detection
+- **compliance-auditor**: Regulatory compliance validation
+- **vulnerability-scanner**: Security vulnerability detection
+- **access-controller**: Role-based access control management
+
+## 🎯 Recommended Swarm Patterns
+
+### Full-Stack Development Swarm (8 agents)
+\`\`\`
+Task("System architecture", "...", "system-architect")
+Task("Backend APIs", "...", "backend-dev") 
+Task("Frontend mobile", "...", "mobile-dev")
+Task("Database design", "...", "coder")
+Task("API documentation", "...", "api-docs")
+Task("CI/CD pipeline", "...", "cicd-engineer")
+Task("Performance testing", "...", "performance-benchmarker")
+Task("Production validation", "...", "production-validator")
+\`\`\`
+
+### Distributed System Swarm (6 agents)
+\`\`\`
+Task("Byzantine consensus", "...", "byzantine-coordinator")
+Task("Raft coordination", "...", "raft-manager")
+Task("Gossip protocols", "...", "gossip-coordinator") 
+Task("CRDT synchronization", "...", "crdt-synchronizer")
+Task("Security management", "...", "security-manager")
+Task("Performance monitoring", "...", "performance-monitor")
+\`\`\`
+
+### GitHub Workflow Swarm (5 agents)
+\`\`\`
+Task("PR management", "...", "pr-manager")
+Task("Code review", "...", "code-review-swarm")
+Task("Issue tracking", "...", "issue-tracker")
+Task("Release coordination", "...", "release-manager")
+Task("Workflow automation", "...", "workflow-automation")
+\`\`\`
+
+### SPARC TDD Swarm (7 agents)
+\`\`\`
+Task("Requirements spec", "...", "specification")
+Task("Algorithm design", "...", "pseudocode")
+Task("System architecture", "...", "architecture") 
+Task("TDD implementation", "...", "sparc-coder")
+Task("London school tests", "...", "tdd-london-swarm")
+Task("Iterative refinement", "...", "refinement")
+Task("Production validation", "...", "production-validator")
+\`\`\`
+
+## ⚡ Performance Guidelines
+
+### Agent Selection Strategy
+- **High Priority**: Use 3-5 agents max for critical path
+- **Medium Priority**: Use 5-8 agents for complex features
+- **Large Projects**: Use 8+ agents with proper coordination
+
+### Memory Management
+- Use memory-coordinator for cross-agent state
+- Implement swarm-memory-manager for distributed coordination
+- Apply collective-intelligence-coordinator for decision-making
+
+### Coordination Patterns
+- **Hierarchical**: Best for large-scale projects with clear structure
+- **Mesh**: Ideal for fault-tolerant, high-availability systems
+- **Adaptive**: Perfect for dynamic workloads and optimization
+
+## 🔧 Integration Features
+
+### Concurrent Agent Deployment
+Claude Agents Power is optimized for concurrent agent deployment:
+
+\`\`\`
+// ✅ CORRECT: Concurrent deployment
+[Single Message]:
+  - Task("Agent 1", "full instructions", "agent-type-1")
+  - Task("Agent 2", "full instructions", "agent-type-2") 
+  - Task("Agent 3", "full instructions", "agent-type-3")
+  - Task("Agent 4", "full instructions", "agent-type-4")
+  - Task("Agent 5", "full instructions", "agent-type-5")
+\`\`\`
+
+## 📚 Best Practices
+1. Always use concurrent agent deployment for maximum performance
+2. Match agent specialization to task requirements for optimal results
+3. Use coordination agents for complex multi-step workflows
+4. Apply appropriate topology based on project scale and requirements
+5. Leverage memory coordination for persistent state across agents
+6. Monitor performance using dedicated monitoring agents
+7. Validate production readiness with specialized validation agents
+`,
+                        },
+                    ],
+                };
+            case 'mcp://claude-agents-power/agent-swarm-patterns':
+                return {
+                    contents: [
+                        {
+                            uri,
+                            mimeType: 'text/markdown',
+                            text: `# Agent Swarm Patterns for Claude Agents Power
+
+## 🎯 Overview
+This guide provides recommended agent swarm deployment patterns optimized for different project types and use cases.
+
+## 🏗️ Pattern Categories
+
+### 1. Development Patterns
+
+#### Microservices Development Swarm
+**Use Case**: Building distributed microservices architecture
+**Agents**: 8-10 specialists
+\`\`\`
+- system-architect: Overall architecture design
+- backend-engineer (x3): Service implementation
+- api-designer: API contract design
+- database-architect: Data model design
+- devops-engineer: Container orchestration
+- security-engineer: Service security
+- performance-engineer: Service optimization
+- qa-engineer: Integration testing
+\`\`\`
+
+#### Mobile App Development Swarm
+**Use Case**: Cross-platform mobile application
+**Agents**: 6-8 specialists
+\`\`\`
+- mobile-architect: App architecture
+- frontend-developer: UI implementation
+- backend-engineer: API development
+- ux-designer: User experience
+- performance-optimizer: App optimization
+- qa-mobile: Mobile testing
+- devops-mobile: App deployment
+\`\`\`
+
+### 2. Data & AI Patterns
+
+#### Machine Learning Pipeline Swarm
+**Use Case**: ML model development and deployment
+**Agents**: 7-9 specialists
+\`\`\`
+- data-scientist: Model development
+- ml-engineer: Pipeline implementation
+- data-engineer: Data preprocessing
+- feature-engineer: Feature extraction
+- mlops-engineer: Model deployment
+- performance-analyst: Model optimization
+- qa-ml: Model validation
+\`\`\`
+
+#### Data Analytics Swarm
+**Use Case**: Business intelligence and analytics
+**Agents**: 5-6 specialists
+\`\`\`
+- data-analyst: Data exploration
+- sql-developer: Query optimization
+- visualization-expert: Dashboard creation
+- etl-engineer: Data pipeline
+- data-quality: Data validation
+\`\`\`
+
+### 3. Infrastructure Patterns
+
+#### Cloud Migration Swarm
+**Use Case**: Migrating applications to cloud
+**Agents**: 8-10 specialists
+\`\`\`
+- cloud-architect: Cloud design
+- migration-planner: Migration strategy
+- infrastructure-engineer: IaC implementation
+- security-engineer: Cloud security
+- network-engineer: Network design
+- database-migrator: Data migration
+- performance-optimizer: Cloud optimization
+- cost-optimizer: Cloud cost management
+\`\`\`
+
+#### Kubernetes Deployment Swarm
+**Use Case**: Container orchestration setup
+**Agents**: 6-7 specialists
+\`\`\`
+- k8s-architect: Cluster design
+- devops-engineer: Pipeline setup
+- helm-expert: Chart creation
+- security-k8s: Security policies
+- monitoring-engineer: Observability
+- performance-k8s: Cluster optimization
+\`\`\`
+
+### 4. Security Patterns
+
+#### Security Audit Swarm
+**Use Case**: Comprehensive security assessment
+**Agents**: 7-8 specialists
+\`\`\`
+- security-architect: Security design
+- vulnerability-scanner: Vulnerability assessment
+- penetration-tester: Security testing
+- compliance-auditor: Compliance check
+- crypto-engineer: Encryption implementation
+- access-controller: IAM setup
+- security-monitor: Security monitoring
+\`\`\`
+
+### 5. Quality Assurance Patterns
+
+#### Comprehensive Testing Swarm
+**Use Case**: Full test coverage implementation
+**Agents**: 6-8 specialists
+\`\`\`
+- test-architect: Test strategy
+- unit-tester: Unit test creation
+- integration-tester: Integration tests
+- e2e-tester: End-to-end tests
+- performance-tester: Load testing
+- security-tester: Security tests
+- automation-engineer: Test automation
+\`\`\`
+
+## 📊 Swarm Size Recommendations
+
+### Small Projects (3-5 agents)
+- Simple features or bug fixes
+- Prototype development
+- Documentation updates
+
+### Medium Projects (5-8 agents)
+- New feature development
+- API implementation
+- Database design
+- Testing implementation
+
+### Large Projects (8-12 agents)
+- System architecture redesign
+- Full-stack application development
+- Platform migration
+- Enterprise integrations
+
+### Enterprise Projects (12+ agents)
+- Multi-team coordination
+- Complex distributed systems
+- Large-scale refactoring
+- Production deployment
+
+## ⚡ Optimization Strategies
+
+### Concurrent Execution
+- Deploy agents in parallel when possible
+- Use coordination agents for dependencies
+- Implement message queuing for communication
+
+### Resource Management
+- Monitor agent resource usage
+- Implement agent pooling
+- Use lazy loading for heavy agents
+- Apply circuit breakers for failures
+
+### Communication Patterns
+- **Direct**: Agent-to-agent direct communication
+- **Broadcast**: One-to-many communication
+- **Pipeline**: Sequential processing chain
+- **Hub-Spoke**: Centralized coordination
+- **Mesh**: Fully connected network
+
+## 🎯 Selection Criteria
+
+### Choose Hierarchical Coordination When:
+- Clear project structure exists
+- Team roles are well-defined
+- Sequential dependencies present
+- Central decision-making required
+
+### Choose Mesh Coordination When:
+- High availability required
+- Fault tolerance critical
+- Distributed decision-making
+- Peer collaboration needed
+
+### Choose Adaptive Coordination When:
+- Workload varies significantly
+- Project requirements evolving
+- Optimization is priority
+- Mixed coordination needed
+
+## 📚 Implementation Examples
+
+### Example 1: E-commerce Platform
+\`\`\`javascript
+const swarm = [
+  { agent: "system-architect", task: "Design microservices architecture" },
+  { agent: "backend-engineer", task: "Implement order service" },
+  { agent: "backend-engineer", task: "Implement payment service" },
+  { agent: "frontend-developer", task: "Build React UI" },
+  { agent: "database-architect", task: "Design data models" },
+  { agent: "security-engineer", task: "Implement authentication" },
+  { agent: "devops-engineer", task: "Setup CI/CD pipeline" },
+  { agent: "qa-engineer", task: "Create test suites" }
+];
+\`\`\`
+
+### Example 2: Real-time Analytics Dashboard
+\`\`\`javascript
+const swarm = [
+  { agent: "data-engineer", task: "Build data pipeline" },
+  { agent: "stream-processor", task: "Implement real-time processing" },
+  { agent: "frontend-developer", task: "Create dashboard UI" },
+  { agent: "websocket-expert", task: "Implement real-time updates" },
+  { agent: "performance-optimizer", task: "Optimize queries" },
+  { agent: "monitoring-engineer", task: "Setup monitoring" }
+];
+\`\`\`
+
+## 🔗 Related Resources
+- Agent Coordination Guide
+- Performance Optimization
+- Distributed Systems Patterns
+- MCP Tool Integration
 `,
                         },
                     ],
