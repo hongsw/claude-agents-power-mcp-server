@@ -32,9 +32,11 @@ catch (error) {
 }
 // Check for splash and other special commands first (manual parsing to avoid commander issues)
 const hasSplash = process.argv.includes('splash') || process.argv.includes('--splash');
+const hasInstall = process.argv.includes('--install');
 const hasInstallSlashCommands = process.argv.includes('--install-slash-commands');
 const hasUninstallSlashCommands = process.argv.includes('--uninstall-slash-commands');
 const hasAgentDownload = process.argv.includes('--agent-download');
+const hasInstallCC = process.argv.includes('--install-cc');
 // Parse CLI arguments using commander
 const program = new Command()
     .name('claude-agents-power')
@@ -42,6 +44,7 @@ const program = new Command()
     .option('--transport <stdio>', 'transport type', 'stdio')
     .option('--debug', 'enable debug logging')
     .option('--install', 'install MCP configuration to Claude Desktop')
+    .option('--install-cc', 'show claude mcp add command for Claude Code')
     .option('--install-slash-commands', 'install slash commands to Claude Code')
     .option('--uninstall-slash-commands', 'uninstall slash commands from Claude Code')
     .option('--agent-download', 'download recommended agents for current project')
@@ -53,27 +56,29 @@ const program = new Command()
     .option('--dry-run', 'preview recommendations without downloading')
     .option('--overwrite', 'overwrite existing agent files')
     .allowUnknownOption(); // let MCP Inspector / other wrappers pass through extra flags
-// Add splash command 
-program
-    .command('splash')
-    .description('Quick setup: analyze project and recommend agents')
-    .action(async () => {
-    try {
-        await initializeAnalytics();
-        trackEvent(AnalyticsEvents.TOOL_CALLED, { tool_name: 'splash', version });
-        const result = await executeSplashCommand();
-        if (!result.success) {
-            console.error('❌ Splash command failed:', result.error || result.message);
+// Add splash command (only if not already handled by early exit)
+if (!hasSplash) {
+    program
+        .command('splash')
+        .description('Quick setup: analyze project and recommend agents')
+        .action(async () => {
+        try {
+            await initializeAnalytics();
+            trackEvent(AnalyticsEvents.TOOL_CALLED, { tool_name: 'splash', version });
+            const result = await executeSplashCommand();
+            if (!result.success) {
+                console.error('❌ Splash command failed:', result.error || result.message);
+                process.exit(1);
+            }
+            await shutdownAnalytics();
+            process.exit(0);
+        }
+        catch (error) {
+            console.error('❌ Splash command error:', error);
             process.exit(1);
         }
-        await shutdownAnalytics();
-        process.exit(0);
-    }
-    catch (error) {
-        console.error('❌ Splash command error:', error);
-        process.exit(1);
-    }
-});
+    });
+}
 // Handle splash command early before parsing
 if (hasSplash) {
     // Skip to splash command execution
@@ -95,20 +100,8 @@ if (hasSplash) {
         }
     })();
 }
-program.parse(process.argv);
-const cliOptions = program.opts();
-// Override with manual parsing results
-if (hasInstallSlashCommands) {
-    cliOptions.installSlashCommands = true;
-}
-if (hasUninstallSlashCommands) {
-    cliOptions.uninstallSlashCommands = true;
-}
-if (hasAgentDownload) {
-    cliOptions.agentDownload = true;
-}
-// Handle --install flag
-if (cliOptions.install) {
+// Early exit for install to avoid commander parsing issues
+if (hasInstall) {
     console.log('🚀 Claude Agents Power MCP Installer\n');
     // Get Claude Desktop config path
     const configPaths = [
@@ -198,6 +191,79 @@ if (cliOptions.install) {
         process.exit(1);
     }
     process.exit(0);
+}
+// Early exit for install-cc to avoid commander parsing issues
+if (hasInstallCC) {
+    (async () => {
+        console.log('🚀 Claude Agents Power - Claude Code MCP Installation\n');
+        // Check if globally installed via npm
+        let isGloballyInstalled = false;
+        try {
+            const { execSync } = await import('child_process');
+            execSync('npm list -g claude-agents-power', { stdio: 'pipe' });
+            isGloballyInstalled = true;
+        }
+        catch {
+            // Not globally installed
+        }
+        console.log('📋 Copy and paste one of these commands into Claude Code:\n');
+        if (isGloballyInstalled) {
+            console.log('   Option 1 (Recommended - NPM global package):');
+            console.log('   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('   claude mcp add claude-agents-power');
+            console.log('');
+        }
+        // Get the current user's home directory and construct the path
+        const currentDir = process.cwd();
+        const homeDir = os.homedir();
+        const username = path.basename(homeDir);
+        // Determine the actual path to this MCP server
+        let serverPath;
+        // Check if we're running from the source directory (development)
+        if (currentDir.includes('claude-agents-power-mcp-server')) {
+            serverPath = currentDir;
+        }
+        else {
+            // Default to the expected installation location
+            serverPath = path.join(homeDir, 'Claude', 'claude-agents-power', 'claude-agents-power-mcp-server');
+        }
+        console.log('   Option 2 (Local file path):');
+        console.log('   ━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`   claude mcp add file://${serverPath}`);
+        console.log('');
+        console.log('📍 Installation Details:');
+        if (isGloballyInstalled) {
+            console.log('   ✅ Package is globally installed via NPM');
+        }
+        console.log(`   📁 Local Path: ${serverPath}`);
+        console.log(`   👤 User: ${username}`);
+        console.log('');
+        console.log('💡 Usage Tips:');
+        console.log('   • Use Option 1 if you installed via npm install -g');
+        console.log('   • Use Option 2 if you cloned the repository locally');
+        console.log('   • The MCP server will be available immediately after adding');
+        console.log('');
+        console.log('📝 Next steps after running the command:');
+        console.log('   1. Claude Code will recognize the MCP server');
+        console.log('   2. Use tools like "analyze-project" and "agents" in your conversations');
+        console.log('   3. Get agent recommendations and download them to your projects');
+        process.exit(0);
+    })();
+}
+program.parse(process.argv);
+const cliOptions = program.opts();
+// Override with manual parsing results
+if (hasInstallSlashCommands) {
+    cliOptions.installSlashCommands = true;
+}
+if (hasUninstallSlashCommands) {
+    cliOptions.uninstallSlashCommands = true;
+}
+if (hasAgentDownload) {
+    cliOptions.agentDownload = true;
+}
+if (hasInstallCC) {
+    cliOptions.installCc = true;
 }
 // Handle --install-slash-commands flag
 if (cliOptions.installSlashCommands) {
